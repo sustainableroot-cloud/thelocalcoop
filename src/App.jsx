@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Calculator, Truck, ShieldCheck, MapPin, Calendar, ArrowRight, CheckCircle2, 
   BarChart3, RefreshCw, ShoppingCart, UserCheck, Layers, Award, Leaf, Wheat,
-  Vote, QrCode, FileText, Lock, Unlock, Users, PlusCircle, DollarSign, Upload, Search, X
+  Vote, QrCode, FileText, Lock, Unlock, Users, PlusCircle, DollarSign, Upload, Search, X, Star, MessageSquare
 } from 'lucide-react';
 
 export default function TheLocalCoOpApp() {
@@ -27,67 +27,100 @@ export default function TheLocalCoOpApp() {
   const [deliveryPreference, setDeliveryPreference] = useState('pickup');
   const [subscriptionInterval, setSubscriptionInterval] = useState('none');
 
-  // Products & Live Database State (Including Homedale/Wilder stack)
+  // Producer Onboarding Wizard State (One question at a time)
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [wizardData, setWizardData] = useState({
+    title: '',
+    category: 'livestock_poultry',
+    price: '',
+    stock: '',
+    zip: '83676',
+    description: '',
+    mediaUrl: ''
+  });
+
+  // Products & Live Database State (Including Generic Co-Op Branded Items & Producer Profiles)
   const [products, setProducts] = useState([
     {
-      id: 'prod-homedale-01',
-      title: 'Regenerative Multi-Species Mix (Vetch, Alfalfa, Clover, Plantain & Grasses)',
-      producer: 'Your Farm (Homedale / Wilder, ID)',
-      category: 'animal_feed',
-      baleStyle: 'Standard Square / Rectangular',
+      id: 'gen-forage',
+      title: 'Local Co-Op Standard Multi-Species Forage Mix',
+      producer: 'Co-Op Network Pool (Homedale / Wilder)',
+      category: 'livestock_poultry',
+      baleStyle: 'Standard Square',
       weightLbs: 60,
       priceBale: 14.50,
       priceTon: 241.66,
-      stockBales: 125, // 113 main stack + 12 spray painted
+      stockBales: 125,
       rfv: 114,
       cpPct: 12.41,
-      moisturePct: 7.75,
       zip: '83676',
-      qrHash: 'SR-HOMEDALE-VETCH-001',
-      notes: '113 main stack + 12 spray painted bales. Lab tested via High Desert Dairy Lab.'
+      qrHash: 'SR-GEN-FORAGE-01',
+      isGeneric: true,
+      producerRating: 4.9,
+      notes: 'Lab-verified regenerative mix. Co-Op assigns to closest available local producer.'
     },
     {
-      id: 'prod-2',
-      title: 'Dairy-Grade 2nd Cut Alfalfa',
-      producer: 'Walkin\' H Farms (Melba, ID)',
-      category: 'animal_feed',
-      baleStyle: '3x4 Large Square',
-      weightLbs: 1200,
-      priceBale: 132.00,
-      priceTon: 220.00,
-      stockBales: 180,
-      rfv: 158,
-      cpPct: 21.2,
+      id: 'prod-homedale-01',
+      title: 'Homedale Regenerative Forage Stack (Vetch, Alfalfa, Clover, Grasses)',
+      producer: 'Walkin\' H Farms',
+      category: 'livestock_poultry',
+      baleStyle: 'Standard Square',
+      weightLbs: 60,
+      priceBale: 14.50,
+      priceTon: 241.66,
+      stockBales: 125,
+      rfv: 114,
+      cpPct: 12.41,
+      zip: '83676',
+      qrHash: 'SR-HOMEDALE-VETCH-001',
+      isGeneric: false,
+      producerRating: 5.0,
+      notes: '113 main stack + 12 spray painted bales. High Desert Dairy Lab tested.'
+    },
+    {
+      id: 'gen-groceries',
+      title: 'Local Co-Op Pasture-Raised Whole Lamb / Beef Share',
+      producer: 'Treasure Valley Co-Op Pool',
+      category: 'groceries',
+      weightLbs: 45,
+      priceBale: 350.00,
+      stockBales: 20,
       zip: '83641',
-      qrHash: 'SR-ALF-83641-001'
+      qrHash: 'SR-GEN-GROCERY-01',
+      isGeneric: true,
+      producerRating: 4.8,
+      notes: 'Sourced from local regenerative member ranches across Canyon & Ada county.'
+    },
+    {
+      id: 'gen-seed',
+      title: 'Diverse Cover Crop & Pasture Seed Blend (25 lb bag)',
+      producer: 'Treasure Valley Agronomics',
+      category: 'seed',
+      weightLbs: 25,
+      priceBale: 85.00,
+      stockBales: 50,
+      zip: '83628',
+      qrHash: 'SR-GEN-SEED-01',
+      isGeneric: true,
+      producerRating: 4.9,
+      notes: 'Multi-species mix optimized for no-till drills and soil biology restoration.'
     }
   ]);
 
-  // Producer Onboarding Form
-  const [formData, setFormData] = useState({
-    title: 'Homedale Multi-Species Regenerative Forage',
-    category: 'animal_feed',
-    baleStyle: 'Standard Square',
-    avgWeight: '60',
-    pricePerBale: '14.50',
-    baleCount: '125',
-    crudeProtein: '12.41',
-    rfv: '114',
-    zip: '83676'
-  });
-
-  const [selectedProduct, setSelectedProduct] = useState(null);
-
-  // Parliamentary Motion State
-  const [activeMotion, setActiveMotion] = useState({
-    title: 'Proposal #1: Official Co-Op Name & Bylaw Ratification',
-    description: 'Vote to formally adopt "The Local Co-Op, Inc." as our legal multi-stakeholder cooperative entity name.',
-    votesForProducer: 15,
-    votesAgainstProducer: 1,
-    votesForConsumer: 72,
-    votesAgainstConsumer: 2,
-    hasVoted: false
-  });
+  // Community Voting Motions State
+  const [motions, setMotions] = useState([
+    {
+      id: 1,
+      title: 'Proposal #1: Official Co-Op Name & Bylaw Ratification',
+      description: 'Vote to formally adopt "The Local Co-Op, Inc." as our legal multi-stakeholder cooperative entity name.',
+      author: 'Board of Directors',
+      votesFor: 87,
+      votesAgainst: 3,
+      userVoted: false
+    }
+  ]);
+  const [newMotionTitle, setNewMotionTitle] = useState('');
+  const [newMotionDesc, setNewMotionDesc] = useState('');
 
   const handleCalculateFeed = () => {
     let dailyLbs = animalType === 'cattle' ? 28 : animalType === 'horse' ? 20 : animalType === 'pigs' ? 8 : animalType === 'chickens' ? 0.25 : 0.35;
@@ -107,25 +140,45 @@ export default function TheLocalCoOpApp() {
     setShowCart(true);
   };
 
-  const handleProducerSubmit = (e) => {
-    e.preventDefault();
+  const handleWizardSubmit = () => {
     const newProd = {
-      id: `prod-${products.length + 1}`,
-      title: formData.title,
-      producer: 'Your Farm (Homedale / Wilder)',
-      category: formData.category,
-      baleStyle: formData.baleStyle,
-      weightLbs: parseFloat(formData.avgWeight),
-      priceBale: parseFloat(formData.pricePerBale),
-      priceTon: (parseFloat(formData.pricePerBale) / (parseFloat(formData.avgWeight) / 2000)).toFixed(2),
-      stockBales: parseInt(formData.baleCount),
-      rfv: parseFloat(formData.rfv),
-      cpPct: parseFloat(formData.crudeProtein),
-      zip: formData.zip,
-      qrHash: `SR-CUSTOM-${Math.floor(1000 + Math.random() * 9000)}`
+      id: `prod-custom-${Date.now()}`,
+      title: wizardData.title,
+      producer: 'Your Farm (Treasure Valley)',
+      category: wizardData.category,
+      weightLbs: 50,
+      priceBale: parseFloat(wizardData.price) || 20.00,
+      priceTon: 200,
+      stockBales: parseInt(wizardData.stock) || 50,
+      rfv: 115,
+      cpPct: 14.0,
+      zip: wizardData.zip,
+      qrHash: `SR-CUSTOM-${Math.floor(1000 + Math.random() * 9000)}`,
+      isGeneric: false,
+      producerRating: 5.0,
+      notes: wizardData.description || 'Farmer uploaded direct listing.'
     };
     setProducts([newProd, ...products]);
+    setOnboardingStep(1);
+    setWizardData({ title: '', category: 'livestock_poultry', price: '', stock: '', zip: '83676', description: '', mediaUrl: '' });
     setActiveTab('marketplace');
+  };
+
+  const handleCreateMotion = (e) => {
+    e.preventDefault();
+    if (!newMotionTitle) return;
+    const motion = {
+      id: motions.length + 1,
+      title: newMotionTitle,
+      description: newMotionDesc,
+      author: 'Member Submission',
+      votesFor: 1,
+      votesAgainst: 0,
+      userVoted: true
+    };
+    setMotions([motion, ...motions]);
+    setNewMotionTitle('');
+    setNewMotionDesc('');
   };
 
   const filteredProducts = products.filter(prod => {
@@ -135,7 +188,7 @@ export default function TheLocalCoOpApp() {
   });
 
   const cartSubtotal = cart.reduce((acc, item) => acc + (item.priceBale * item.quantity), 0);
-  const cartFee = cartSubtotal * 0.03;
+  const cartFee = cartSubtotal * 0.05; // Commission model: 5% co-op fee
   const cartTotal = cartSubtotal + cartFee;
 
   return (
@@ -205,20 +258,25 @@ export default function TheLocalCoOpApp() {
                 <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Search forage, feed, or producer..." 
+                  placeholder="Search groceries, livestock feed, seed..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-emerald-600"
                 />
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-                <span className="text-xs font-semibold text-slate-500">Category:</span>
-                {['all', 'animal_feed', 'grain', 'seed'].map((cat) => (
+                <span className="text-xs font-semibold text-slate-500">Categories:</span>
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'groceries', label: 'Groceries' },
+                  { key: 'livestock_poultry', label: 'Livestock & Poultry' },
+                  { key: 'seed', label: 'Seed' }
+                ].map((cat) => (
                   <button 
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition ${selectedCategory === cat ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-                    {cat.replace('_', ' ')}
+                    key={cat.key}
+                    onClick={() => setSelectedCategory(cat.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${selectedCategory === cat.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -229,22 +287,24 @@ export default function TheLocalCoOpApp() {
                 <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
                   <div className="p-5 space-y-3">
                     <div className="flex justify-between items-start">
-                      <span className="text-xs font-bold uppercase text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">{prod.category.replace('_', ' ')}</span>
+                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-md border ${prod.isGeneric ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                        {prod.isGeneric ? 'Co-Op Branded Pool' : 'Verified Producer'}
+                      </span>
                       <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> ZIP {prod.zip}</span>
                     </div>
+
                     <h4 className="font-bold text-slate-900 text-base">{prod.title}</h4>
-                    <p className="text-xs text-slate-500 font-medium">Producer: {prod.producer}</p>
-                    {prod.notes && <p className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200">{prod.notes}</p>}
                     
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div><span className="text-slate-400 block text-[10px] uppercase">RFV Index</span><span className="font-bold text-emerald-700">{prod.rfv}</span></div>
-                      <div><span className="text-slate-400 block text-[10px] uppercase">Protein</span><span className="font-bold text-emerald-700">{prod.cpPct}%</span></div>
-                      <div><span className="text-slate-400 block text-[10px] uppercase">Moisture</span><span className="font-bold text-slate-800">{prod.moisturePct || 7.75}%</span></div>
+                    <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                      <span className="text-slate-600 font-medium">Provider: <strong className="text-slate-900">{prod.producer}</strong></span>
+                      <span className="flex items-center gap-1 font-bold text-amber-600"><Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {prod.producerRating}</span>
                     </div>
 
+                    {prod.notes && <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">{prod.notes}</p>}
+                    
                     <div className="flex justify-between items-baseline pt-2">
                       <div><span className="text-2xl font-extrabold text-slate-900">${prod.priceBale.toFixed(2)}</span><span className="text-xs text-slate-500"> / unit</span></div>
-                      <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">${prod.priceTon} / Ton</span>
+                      <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">Free Producer Entry (Commission Supported)</span>
                     </div>
                   </div>
                   <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
@@ -321,7 +381,7 @@ export default function TheLocalCoOpApp() {
                 </div>
 
                 <div className="pt-4 border-t border-emerald-800 flex justify-between items-center">
-                  <span className="text-xs text-emerald-300">Matching available inventory in Homedale / Wilder area:</span>
+                  <span className="text-xs text-emerald-300">Matching available inventory in Treasure Valley pool:</span>
                   <button onClick={() => { handleAddToCart(products[0], Math.min(calculatedUnits, products[0].stockBales)); }} className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-2.5 px-6 rounded-xl text-xs shadow transition">
                     Add Matching Inventory to Cart →
                   </button>
@@ -332,43 +392,85 @@ export default function TheLocalCoOpApp() {
         )}
 
         {isLoggedIn && activeTab === 'producer_onboarding' && (
-          <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             <div>
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-200">Producer Onboarding Wizard</span>
-              <h2 className="text-2xl font-bold text-slate-900 mt-2">Add Your Hay, Feed or Seed Inventory</h2>
-              <p className="text-xs text-slate-500 mt-1">Preloaded with your Homedale/Wilder stack specs and High Desert Dairy Lab metrics.</p>
+              <h2 className="text-2xl font-bold text-slate-900 mt-2">List Your Product For Free</h2>
+              <p className="text-xs text-slate-500 mt-1">Simple, step-by-step questionnaire. Automatically publishes to the marketplace with a QR tag upon completion.</p>
             </div>
-            <form onSubmit={handleProducerSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Listing Title</label>
-                  <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" required />
+
+            <div className="flex gap-2 mb-4">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className={`flex-1 h-2 rounded-full ${onboardingStep >= step ? 'bg-emerald-600' : 'bg-slate-200'}`} />
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {onboardingStep === 1 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-slate-800">1. What category does your product belong to?</label>
+                  <select value={wizardData.category} onChange={(e) => setWizardData({...wizardData, category: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm font-semibold">
+                    <option value="groceries">Groceries (Meat, Produce, Honey, etc.)</option>
+                    <option value="livestock_poultry">Livestock & Poultry Feed / Forage</option>
+                    <option value="seed">Seed & Agronomics</option>
+                  </select>
+                  <label className="block text-sm font-bold text-slate-800 pt-2">What is the title of your listing?</label>
+                  <input type="text" placeholder="e.g. Regenerative Mixed Forage Bales or Grass-Fed Beef Share" value={wizardData.title} onChange={(e) => setWizardData({...wizardData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Price Per Unit / Bale ($)</label>
-                  <input type="number" step="0.01" value={formData.pricePerBale} onChange={(e) => setFormData({...formData, pricePerBale: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" required />
+              )}
+
+              {onboardingStep === 2 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-slate-800">2. Pricing & Available Quantity</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Price Per Unit / Bale ($)</label>
+                      <input type="number" step="0.01" placeholder="14.50" value={wizardData.price} onChange={(e) => setWizardData({...wizardData, price: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Available Units</label>
+                      <input type="number" placeholder="125" value={wizardData.stock} onChange={(e) => setWizardData({...wizardData, stock: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase mb-1 pt-2">Stackyard / Farm ZIP Code</label>
+                    <input type="text" placeholder="83676" value={wizardData.zip} onChange={(e) => setWizardData({...wizardData, zip: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Total Bales Available (113 main + 12 painted)</label>
-                  <input type="number" value={formData.baleCount} onChange={(e) => setFormData({...formData, baleCount: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" required />
+              )}
+
+              {onboardingStep === 3 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-slate-800">3. Description, Lab Metrics & Media</label>
+                  <textarea placeholder="Describe your product, growing practices, or paste lab test highlights..." value={wizardData.description} onChange={(e) => setWizardData({...wizardData, description: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm h-24" />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Photo / Video Link (Google Photos / YouTube)</label>
+                    <input type="text" placeholder="https://photos.app.goo.gl/..." value={wizardData.mediaUrl} onChange={(e) => setWizardData({...wizardData, mediaUrl: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Stackyard ZIP (Homedale / Wilder)</label>
-                  <input type="text" value={formData.zip} onChange={(e) => setFormData({...formData, zip: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" required />
+              )}
+
+              {onboardingStep === 4 && (
+                <div className="space-y-4 text-center py-4">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+                  <h3 className="text-lg font-bold text-slate-900">Ready to Publish</h3>
+                  <p className="text-xs text-slate-600 max-w-md mx-auto">Your listing will go live immediately on the Treasure Valley marketplace with an auto-generated QR traceability tag. Zero upfront fees—a small commission applies only when sold.</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">Crude Protein % (Lab Verified)</label>
-                  <input type="number" step="0.01" value={formData.crudeProtein} onChange={(e) => setFormData({...formData, crudeProtein: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">RFV Index (Lab Verified)</label>
-                  <input type="number" value={formData.rfv} onChange={(e) => setFormData({...formData, rfv: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs" />
-                </div>
-              </div>
-              <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-5 h-5" /> Publish Homedale Stack & Generate QR Tag
-              </button>
-            </form>
+              )}
+            </div>
+
+            <div className="flex justify-between pt-4 border-t border-slate-100">
+              {onboardingStep > 1 && (
+                <button onClick={() => setOnboardingStep(onboardingStep - 1)} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-5 py-2.5 rounded-xl text-xs">Back</button>
+              )}
+              {onboardingStep < 4 ? (
+                <button onClick={() => setOnboardingStep(onboardingStep + 1)} className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs">Next Step →</button>
+              ) : (
+                <button onClick={handleWizardSubmit} className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Publish Listing & Generate QR Tag
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -380,13 +482,14 @@ export default function TheLocalCoOpApp() {
                 <p className="text-lg font-bold text-slate-900 mt-1">Active Producer Owner</p>
               </div>
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <span className="text-xs text-slate-400 uppercase">Homedale Stack Inventory</span>
-                <p className="text-2xl font-extrabold text-emerald-700 mt-1">125 Bales</p>
-                <span className="text-[10px] text-slate-500">113 Main + 12 Spray Painted</span>
+                <span className="text-xs text-slate-400 uppercase">Value Exchange Total</span>
+                <p className="text-2xl font-extrabold text-emerald-700 mt-1">$24,830.00</p>
+                <span className="text-[10px] text-slate-500">Combined Purchases & Sales</span>
               </div>
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-xs text-slate-400 uppercase">Est. Patronage Dividend</span>
-                <p className="text-2xl font-extrabold text-slate-900 mt-1">$1,069.20</p>
+                <p className="text-2xl font-extrabold text-slate-900 mt-1">$1,117.35</p>
+                <span className="text-[10px] text-slate-500">Based on % of overall co-op revenue</span>
               </div>
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <span className="text-xs text-slate-400 uppercase">Stripe Connect</span>
@@ -397,15 +500,39 @@ export default function TheLocalCoOpApp() {
         )}
 
         {isLoggedIn && activeTab === 'governance' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-2xl font-bold text-slate-900">Voting Engine</h2>
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-              <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full border border-amber-300">Active Floor Motion</span>
-              <h3 className="text-base font-bold text-slate-900">{activeMotion.title}</h3>
-              <p className="text-xs text-slate-600">{activeMotion.description}</p>
-              <div className="flex gap-3 pt-2">
-                <button disabled={activeMotion.hasVoted} onClick={() => setActiveMotion({...activeMotion, votesForConsumer: activeMotion.votesForConsumer + 1, hasVoted: true})} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs">Cast Pre-Vote: AYE</button>
-                <button disabled={activeMotion.hasVoted} onClick={() => setActiveMotion({...activeMotion, votesAgainstConsumer: activeMotion.votesAgainstConsumer + 1, hasVoted: true})} className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-xs">Cast Pre-Vote: NAY</button>
+          <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900">Voting Engine & Motion Submission</h2>
+              <p className="text-xs text-slate-600">Producers and consumers hold balanced multi-stakeholder voting rights. Create a new motion or vote on active proposals below.</p>
+
+              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-3">
+                <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-2"><PlusCircle className="w-4 h-4 text-emerald-700" /> Propose New Community Motion</h3>
+                <form onSubmit={handleCreateMotion} className="space-y-3">
+                  <input type="text" placeholder="Motion Title (e.g., Expand Marsing Hub Storage Hours)" value={newMotionTitle} onChange={(e) => setNewMotionTitle(e.target.value)} className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs" />
+                  <textarea placeholder="Describe the motion details and expected impact..." value={newMotionDesc} onChange={(e) => setNewMotionDesc(e.target.value)} className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs h-20" />
+                  <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs">Submit Motion for Vote</button>
+                </form>
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <h3 className="text-sm font-bold text-slate-800 uppercase">Active Member Motions</h3>
+                {motions.map((motion) => (
+                  <div key={motion.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full border border-amber-300">Active Ballot</span>
+                      <span className="text-xs text-slate-500">Proposed by: {motion.author}</span>
+                    </div>
+                    <h4 className="text-base font-bold text-slate-900">{motion.title}</h4>
+                    <p className="text-xs text-slate-600">{motion.description}</p>
+                    <div className="flex justify-between items-center text-xs text-slate-500 pt-2 border-t border-slate-200">
+                      <span>Votes For: <strong className="text-emerald-700">{motion.votesFor}</strong> | Against: <strong className="text-rose-600">{motion.votesAgainst}</strong></span>
+                      <div className="flex gap-2">
+                        <button onClick={() => setMotions(motions.map(m => m.id === motion.id ? {...m, votesFor: m.votesFor + 1} : m))} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg">Vote AYE</button>
+                        <button onClick={() => setMotions(motions.map(m => m.id === motion.id ? {...m, votesAgainst: m.votesAgainst + 1} : m))} className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg">Vote NAY</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -420,13 +547,13 @@ export default function TheLocalCoOpApp() {
               <h3 className="text-base font-bold text-slate-900">Co-Op Member Login</h3>
               <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
             </div>
-            <p className="text-xs text-slate-600">Select your member stakeholder profile to unlock advanced platform tools:</p>
+            <p className="text-xs text-slate-600">Select your stakeholder profile to unlock inventory publishing, dashboard analytics, and voting:</p>
             <div className="space-y-2">
               <button onClick={() => { setUserRole('consumer_owner'); setIsLoggedIn(true); setShowLoginModal(false); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition text-xs font-bold text-slate-800">
                 Consumer Owner <span className="block font-normal text-slate-500 text-[10px]">Access marketplace, subscriptions, and voting</span>
               </button>
               <button onClick={() => { setUserRole('producer_owner'); setIsLoggedIn(true); setShowLoginModal(false); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition text-xs font-bold text-slate-800">
-                Producer Owner <span className="block font-normal text-slate-500 text-[10px]">Access inventory publishing, dashboard & voting</span>
+                Producer Owner <span className="block font-normal text-slate-500 text-[10px]">Access free listing wizard, dashboard & voting</span>
               </button>
             </div>
           </div>
@@ -440,7 +567,7 @@ export default function TheLocalCoOpApp() {
             <div className="flex justify-between items-start border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Your Co-Op Shopping Cart</h3>
-                <p className="text-xs text-slate-500">Local Treasure Valley Direct-to-Consumer Distribution</p>
+                <p className="text-xs text-slate-500">Treasure Valley Direct-to-Consumer Distribution</p>
               </div>
               <button onClick={() => setShowCart(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
@@ -454,7 +581,7 @@ export default function TheLocalCoOpApp() {
                     <div key={idx} className="py-3 flex justify-between items-center text-xs">
                       <div>
                         <p className="font-bold text-slate-900">{item.title}</p>
-                        <p className="text-slate-500">${item.priceBale.toFixed(2)} × {item.quantity} units</p>
+                        <p className="text-slate-500">{item.producer} • ${item.priceBale.toFixed(2)} × {item.quantity}</p>
                       </div>
                       <span className="font-extrabold text-slate-900">${(item.priceBale * item.quantity).toFixed(2)}</span>
                     </div>
@@ -463,13 +590,13 @@ export default function TheLocalCoOpApp() {
 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
                   <div className="flex justify-between"><span>Subtotal:</span><span className="font-bold">${cartSubtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between text-slate-500"><span>Co-Op Escrow & Handling (3%):</span><span>+${cartFee.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-slate-500"><span>Co-Op Commission & Handling (5%):</span><span>+${cartFee.toFixed(2)}</span></div>
                   <div className="border-t pt-2 flex justify-between font-extrabold text-sm text-slate-900"><span>Total Quote:</span><span className="text-emerald-700">${cartTotal.toFixed(2)}</span></div>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <label className="block font-semibold text-slate-700 uppercase">Delivery Address & Info</label>
-                  <input type="text" placeholder="Street Address / Ranch Name (e.g., 24470 Ustick Rd)" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+                  <input type="text" placeholder="Street Address / Ranch Name" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
                   <div className="grid grid-cols-2 gap-2">
                     <input type="text" placeholder="City, State, ZIP" defaultValue="Wilder, ID 83676" className="bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
                     <input type="text" placeholder="Phone Number" className="bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
