@@ -2,22 +2,32 @@ import React, { useState } from 'react';
 import { 
   Calculator, Truck, ShieldCheck, MapPin, Calendar, ArrowRight, CheckCircle2, 
   BarChart3, RefreshCw, ShoppingCart, UserCheck, Layers, Award, Leaf, Wheat,
-  Vote, QrCode, FileText, Lock, Unlock, Users, PlusCircle, DollarSign, Upload
+  Vote, QrCode, FileText, Lock, Unlock, Users, PlusCircle, DollarSign, Upload, Search, X
 } from 'lucide-react';
 
 export default function TheLocalCoOpApp() {
   const [activeTab, setActiveTab] = useState('marketplace');
-  const [userRole, setUserRole] = useState('producer_owner');
-  const [memberTier, setMemberTier] = useState('producer_standard');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [userRole, setUserRole] = useState('consumer_owner');
   
-  // FeedFlow Calculator State
+  // FeedFlow Calculator State & Results
   const [animalType, setAnimalType] = useState('horse');
   const [animalCount, setAnimalCount] = useState(4);
   const [feedingMonths, setFeedingMonths] = useState(5);
   const [calculatedTons, setCalculatedTons] = useState(3.6);
-  const [calculatedBales, setCalculatedBales] = useState(120);
+  const [calculatedUnits, setCalculatedUnits] = useState(120);
+  const [feedCalculated, setFeedCalculated] = useState(false);
 
-  // Products & Live Database State (Including your Homedale/Wilder stack)
+  // Cart & Search State
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [deliveryPreference, setDeliveryPreference] = useState('pickup');
+  const [subscriptionInterval, setSubscriptionInterval] = useState('none');
+
+  // Products & Live Database State (Including Homedale/Wilder stack)
   const [products, setProducts] = useState([
     {
       id: 'prod-homedale-01',
@@ -63,13 +73,10 @@ export default function TheLocalCoOpApp() {
     baleCount: '125',
     crudeProtein: '12.41',
     rfv: '114',
-    moisture: '7.75',
     zip: '83676'
   });
 
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [orderQuantity, setOrderQuantity] = useState(20);
-  const [hubTrailerLocked, setHubTrailerLocked] = useState(true);
 
   // Parliamentary Motion State
   const [activeMotion, setActiveMotion] = useState({
@@ -83,10 +90,21 @@ export default function TheLocalCoOpApp() {
   });
 
   const handleCalculateFeed = () => {
-    let dailyLbs = animalType === 'cattle' ? 28 : animalType === 'horse' ? 20 : 4;
+    let dailyLbs = animalType === 'cattle' ? 28 : animalType === 'horse' ? 20 : animalType === 'pigs' ? 8 : animalType === 'chickens' ? 0.25 : 0.35;
     const totalLbs = animalCount * dailyLbs * (feedingMonths * 30);
     setCalculatedTons((totalLbs / 2000).toFixed(1));
-    setCalculatedBales(Math.ceil(totalLbs / 60));
+    setCalculatedUnits(Math.ceil(totalLbs / 60));
+    setFeedCalculated(true);
+  };
+
+  const handleAddToCart = (prod, qty = 1) => {
+    const existing = cart.find(item => item.id === prod.id);
+    if (existing) {
+      setCart(cart.map(item => item.id === prod.id ? { ...item, quantity: item.quantity + qty } : item));
+    } else {
+      setCart([...cart, { ...prod, quantity: qty }]);
+    }
+    setShowCart(true);
   };
 
   const handleProducerSubmit = (e) => {
@@ -110,9 +128,15 @@ export default function TheLocalCoOpApp() {
     setActiveTab('marketplace');
   };
 
-  const calcSubtotal = selectedProduct ? (selectedProduct.priceBale * orderQuantity) : 0;
-  const calcBuyerFee = calcSubtotal * 0.03;
-  const calcTotal = calcSubtotal + calcBuyerFee;
+  const filteredProducts = products.filter(prod => {
+    const matchesSearch = prod.title.toLowerCase().includes(searchQuery.toLowerCase()) || prod.producer.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || prod.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const cartSubtotal = cart.reduce((acc, item) => acc + (item.priceBale * item.quantity), 0);
+  const cartFee = cartSubtotal * 0.03;
+  const cartTotal = cartSubtotal + cartFee;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -123,36 +147,129 @@ export default function TheLocalCoOpApp() {
               <Leaf className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-extrabold text-xl tracking-tight text-emerald-100 flex items-center gap-2">
-                THE LOCAL CO-OP <span className="text-xs bg-emerald-800 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-700">MSC Network</span>
+              <h1 className="font-extrabold text-xl tracking-tight text-emerald-100">
+                THE LOCAL CO-OP
               </h1>
               <p className="text-xs text-emerald-400">Treasure Valley Regional Food & Forage Sovereignty</p>
             </div>
           </div>
 
-          <div className="flex items-center bg-emerald-900/80 p-1 rounded-xl border border-emerald-800 text-xs">
-            <span className="text-emerald-400 px-2 font-medium">Role View:</span>
-            <button onClick={() => setUserRole('consumer_owner')} className={`px-3 py-1.5 rounded-lg font-semibold transition ${userRole === 'consumer_owner' ? 'bg-emerald-500 text-emerald-950 shadow' : 'text-emerald-300 hover:text-white'}`}>Consumer Owner</button>
-            <button onClick={() => setUserRole('producer_owner')} className={`px-3 py-1.5 rounded-lg font-semibold transition ${userRole === 'producer_owner' ? 'bg-emerald-500 text-emerald-950 shadow' : 'text-emerald-300 hover:text-white'}`}>Producer Owner</button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowCart(true)} 
+              className="relative bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-emerald-200 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+              <ShoppingCart className="w-4 h-4 text-emerald-400" />
+              <span>Cart</span>
+              {cart.length > 0 && (
+                <span className="bg-emerald-500 text-emerald-950 font-bold px-1.5 py-0.5 rounded-full text-[10px]">
+                  {cart.reduce((a, c) => a + c.quantity, 0)}
+                </span>
+              )}
+            </button>
+
+            {isLoggedIn ? (
+              <div className="flex items-center gap-2 bg-emerald-900 border border-emerald-700 px-3 py-1.5 rounded-xl text-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="font-medium text-emerald-200 capitalize">{userRole.replace('_', ' ')}</span>
+                <button onClick={() => setIsLoggedIn(false)} className="text-emerald-400 hover:text-white ml-2 text-[10px] underline">Logout</button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowLoginModal(true)} 
+                className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold px-4 py-1.5 rounded-xl text-xs shadow transition">
+                Login
+              </button>
+            )}
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 flex gap-2 border-t border-emerald-900 overflow-x-auto text-sm font-medium">
-          <button onClick={() => setActiveTab('calculator')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'calculator' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Calculator className="w-4 h-4 text-emerald-400" /> FeedFlow Calculator</button>
           <button onClick={() => setActiveTab('marketplace')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'marketplace' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Wheat className="w-4 h-4 text-emerald-400" /> Marketplace</button>
-          <button onClick={() => setActiveTab('producer_onboarding')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'producer_onboarding' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><PlusCircle className="w-4 h-4 text-emerald-400" /> Add Inventory</button>
-          <button onClick={() => setActiveTab('producer_dashboard')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'producer_dashboard' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><BarChart3 className="w-4 h-4 text-emerald-400" /> Member Dashboard</button>
-          <button onClick={() => setActiveTab('governance')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'governance' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Vote className="w-4 h-4 text-emerald-400" /> Voting (Robert's Rules)</button>
+          <button onClick={() => setActiveTab('calculator')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'calculator' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Calculator className="w-4 h-4 text-emerald-400" /> FeedFlow Calculator</button>
+          
+          {isLoggedIn && (
+            <>
+              <button onClick={() => setActiveTab('producer_onboarding')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'producer_onboarding' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><PlusCircle className="w-4 h-4 text-emerald-400" /> Add Inventory</button>
+              <button onClick={() => setActiveTab('producer_dashboard')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'producer_dashboard' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><BarChart3 className="w-4 h-4 text-emerald-400" /> Member Dashboard</button>
+              <button onClick={() => setActiveTab('governance')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'governance' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Vote className="w-4 h-4 text-emerald-400" /> Voting</button>
+            </>
+          )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {activeTab === 'marketplace' && (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search forage, feed, or producer..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-emerald-600"
+                />
+              </div>
+              <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+                <span className="text-xs font-semibold text-slate-500">Category:</span>
+                {['all', 'animal_feed', 'grain', 'seed'].map((cat) => (
+                  <button 
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition ${selectedCategory === cat ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                    {cat.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((prod) => (
+                <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                  <div className="p-5 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-bold uppercase text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">{prod.category.replace('_', ' ')}</span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> ZIP {prod.zip}</span>
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-base">{prod.title}</h4>
+                    <p className="text-xs text-slate-500 font-medium">Producer: {prod.producer}</p>
+                    {prod.notes && <p className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200">{prod.notes}</p>}
+                    
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div><span className="text-slate-400 block text-[10px] uppercase">RFV Index</span><span className="font-bold text-emerald-700">{prod.rfv}</span></div>
+                      <div><span className="text-slate-400 block text-[10px] uppercase">Protein</span><span className="font-bold text-emerald-700">{prod.cpPct}%</span></div>
+                      <div><span className="text-slate-400 block text-[10px] uppercase">Moisture</span><span className="font-bold text-slate-800">{prod.moisturePct || 7.75}%</span></div>
+                    </div>
+
+                    <div className="flex justify-between items-baseline pt-2">
+                      <div><span className="text-2xl font-extrabold text-slate-900">${prod.priceBale.toFixed(2)}</span><span className="text-xs text-slate-500"> / unit</span></div>
+                      <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">${prod.priceTon} / Ton</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700">Stock: {prod.stockBales} Available</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleAddToCart(prod, 1)} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-3 py-2 rounded-lg transition">
+                        Add to Cart
+                      </button>
+                      <button onClick={() => { handleAddToCart(prod, 1); setShowCart(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition">
+                        Buy Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'calculator' && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-200">Custom Ration & Forage Engine</span>
               <h2 className="text-2xl font-bold text-slate-900 mt-2">FeedFlow Livestock Nutritional & Tonnage Calculator</h2>
-              <p className="text-slate-600 text-sm mt-1">Configure feed programs tailored to your animals' exact nutritional targets using verified lab metrics from Treasure Valley soil and hay samples.</p>
+              <p className="text-slate-600 text-sm mt-1">Configure feed programs tailored to your animals' exact nutritional targets across multi-species farm setups.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-100">
                 <div>
@@ -160,7 +277,9 @@ export default function TheLocalCoOpApp() {
                   <select value={animalType} onChange={(e) => setAnimalType(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm font-semibold">
                     <option value="horse">Horses (Avg 1,000 lbs)</option>
                     <option value="cattle">Cattle (1,200 lbs)</option>
-                    <option value="sheep">Sheep / Goats (150 lbs)</option>
+                    <option value="pigs">Pigs (200 lbs)</option>
+                    <option value="chickens">Chickens (Layer / Broiler)</option>
+                    <option value="turkeys">Turkeys</option>
                   </select>
                 </div>
                 <div>
@@ -173,62 +292,46 @@ export default function TheLocalCoOpApp() {
                 </div>
               </div>
               <button onClick={handleCalculateFeed} className="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl shadow transition flex items-center gap-2">
-                <Calculator className="w-5 h-5" /> Calculate Custom FeedFlow Requirements
+                <Calculator className="w-5 h-5" /> Calculate FeedFlow Requirements
               </button>
             </div>
 
-            <div className="bg-emerald-900 text-white rounded-2xl p-6 shadow-lg grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-              <div>
-                <span className="text-xs text-emerald-300 uppercase font-semibold">Total Tonnage Required</span>
-                <p className="text-4xl font-extrabold mt-1">{calculatedTons} <span className="text-lg font-normal text-emerald-300">Tons</span></p>
-              </div>
-              <div>
-                <span className="text-xs text-emerald-300 uppercase font-semibold">Estimated Standard Bales</span>
-                <p className="text-4xl font-extrabold mt-1">{calculatedBales} <span className="text-lg font-normal text-emerald-300">Bales</span></p>
-              </div>
-              <button onClick={() => setActiveTab('marketplace')} className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-3 px-4 rounded-xl shadow text-sm transition text-center">
-                Match with Homedale/Wilder Inventory →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'marketplace' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((prod) => (
-              <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
-                <div className="p-5 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold uppercase text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">{prod.category.replace('_', ' ')}</span>
-                    <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> ZIP {prod.zip}</span>
+            {feedCalculated && (
+              <div className="bg-emerald-900 text-white rounded-2xl p-6 shadow-lg space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                  <div>
+                    <span className="text-xs text-emerald-300 uppercase font-semibold">Calculated Total Requirement</span>
+                    <p className="text-4xl font-extrabold mt-1">{calculatedTons} <span className="text-lg font-normal text-emerald-300">Tons</span> <span className="text-sm font-normal text-emerald-200">({calculatedUnits} standard bales / bags)</span></p>
+                    <p className="text-xs text-emerald-300 mt-2">Tailored for {animalCount} {animalType} over {feedingMonths} months based on regional lab feed analysis.</p>
                   </div>
-                  <h4 className="font-bold text-slate-900 text-base">{prod.title}</h4>
-                  <p className="text-xs text-slate-500 font-medium">Producer: {prod.producer}</p>
-                  {prod.notes && <p className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded border border-emerald-200">{prod.notes}</p>}
-                  
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
-                    <div><span className="text-slate-400 block text-[10px] uppercase">RFV Index</span><span className="font-bold text-emerald-700">{prod.rfv}</span></div>
-                    <div><span className="text-slate-400 block text-[10px] uppercase">Protein</span><span className="font-bold text-emerald-700">{prod.cpPct}%</span></div>
-                    <div><span className="text-slate-400 block text-[10px] uppercase">Moisture</span><span className="font-bold text-slate-800">{prod.moisturePct || 7.75}%</span></div>
-                  </div>
-
-                  <div className="flex justify-between items-baseline pt-2">
-                    <div><span className="text-2xl font-extrabold text-slate-900">${prod.priceBale.toFixed(2)}</span><span className="text-xs text-slate-500"> / unit</span></div>
-                    <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">${prod.priceTon} / Ton</span>
+                  <div className="bg-emerald-950/60 p-4 rounded-xl border border-emerald-800 space-y-3">
+                    <label className="block text-xs font-semibold text-emerald-300 uppercase">Fulfillment & Subscription Schedule</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <select value={deliveryPreference} onChange={(e) => setDeliveryPreference(e.target.value)} className="bg-emerald-900 border border-emerald-700 rounded-lg p-2 text-white font-medium">
+                        <option value="pickup">Hub Pick-Up (Marsing/Homedale)</option>
+                        <option value="delivery">Direct Delivery to Farm</option>
+                      </select>
+                      <select value={subscriptionInterval} onChange={(e) => setSubscriptionInterval(e.target.value)} className="bg-emerald-900 border border-emerald-700 rounded-lg p-2 text-white font-medium">
+                        <option value="none">One-Time Order</option>
+                        <option value="monthly">Auto-Ship Monthly</option>
+                        <option value="quarterly">Auto-Ship Quarterly</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">Stock: {prod.stockBales} Bales Available</span>
-                  <button onClick={() => setSelectedProduct(prod)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center gap-1">
-                    Order & Schedule <ArrowRight className="w-3 h-3" />
+
+                <div className="pt-4 border-t border-emerald-800 flex justify-between items-center">
+                  <span className="text-xs text-emerald-300">Matching available inventory in Homedale / Wilder area:</span>
+                  <button onClick={() => { handleAddToCart(products[0], Math.min(calculatedUnits, products[0].stockBales)); }} className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-2.5 px-6 rounded-xl text-xs shadow transition">
+                    Add Matching Inventory to Cart →
                   </button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
 
-        {activeTab === 'producer_onboarding' && (
+        {isLoggedIn && activeTab === 'producer_onboarding' && (
           <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             <div>
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-200">Producer Onboarding Wizard</span>
@@ -269,7 +372,7 @@ export default function TheLocalCoOpApp() {
           </div>
         )}
 
-        {activeTab === 'producer_dashboard' && (
+        {isLoggedIn && activeTab === 'producer_dashboard' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -293,9 +396,9 @@ export default function TheLocalCoOpApp() {
           </div>
         )}
 
-        {activeTab === 'governance' && (
+        {isLoggedIn && activeTab === 'governance' && (
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-2xl font-bold text-slate-900">Parliamentary Procedure Voting Engine (Robert's Rules)</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Voting Engine</h2>
             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
               <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full border border-amber-300">Active Floor Motion</span>
               <h3 className="text-base font-bold text-slate-900">{activeMotion.title}</h3>
@@ -309,30 +412,75 @@ export default function TheLocalCoOpApp() {
         )}
       </main>
 
-      {selectedProduct && (
+      {/* Login Modal */}
+      {showLoginModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Co-Op Member Login</h3>
+              <button onClick={() => setShowLoginModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            </div>
+            <p className="text-xs text-slate-600">Select your member stakeholder profile to unlock advanced platform tools:</p>
+            <div className="space-y-2">
+              <button onClick={() => { setUserRole('consumer_owner'); setIsLoggedIn(true); setShowLoginModal(false); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition text-xs font-bold text-slate-800">
+                Consumer Owner <span className="block font-normal text-slate-500 text-[10px]">Access marketplace, subscriptions, and voting</span>
+              </button>
+              <button onClick={() => { setUserRole('producer_owner'); setIsLoggedIn(true); setShowLoginModal(false); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition text-xs font-bold text-slate-800">
+                Producer Owner <span className="block font-normal text-slate-500 text-[10px]">Access inventory publishing, dashboard & voting</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart & Checkout Modal */}
+      {showCart && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{selectedProduct.title}</h3>
-                <p className="text-xs text-slate-500">{selectedProduct.producer}</p>
+                <h3 className="text-lg font-bold text-slate-900">Your Co-Op Shopping Cart</h3>
+                <p className="text-xs text-slate-500">Local Treasure Valley Direct-to-Consumer Distribution</p>
               </div>
-              <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+              <button onClick={() => setShowCart(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 uppercase mb-1">Quantity (Units / Bales)</label>
-                <input type="number" value={orderQuantity} onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 1)} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-bold" />
+
+            {cart.length === 0 ? (
+              <p className="text-xs text-slate-500 py-8 text-center">Your cart is currently empty. Browse the marketplace or use FeedFlow to add items.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="divide-y divide-slate-100">
+                  {cart.map((item, idx) => (
+                    <div key={idx} className="py-3 flex justify-between items-center text-xs">
+                      <div>
+                        <p className="font-bold text-slate-900">{item.title}</p>
+                        <p className="text-slate-500">${item.priceBale.toFixed(2)} × {item.quantity} units</p>
+                      </div>
+                      <span className="font-extrabold text-slate-900">${(item.priceBale * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                  <div className="flex justify-between"><span>Subtotal:</span><span className="font-bold">${cartSubtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-slate-500"><span>Co-Op Escrow & Handling (3%):</span><span>+${cartFee.toFixed(2)}</span></div>
+                  <div className="border-t pt-2 flex justify-between font-extrabold text-sm text-slate-900"><span>Total Quote:</span><span className="text-emerald-700">${cartTotal.toFixed(2)}</span></div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <label className="block font-semibold text-slate-700 uppercase">Delivery Address & Info</label>
+                  <input type="text" placeholder="Street Address / Ranch Name (e.g., 24470 Ustick Rd)" className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="City, State, ZIP" defaultValue="Wilder, ID 83676" className="bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+                    <input type="text" placeholder="Phone Number" className="bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+                  </div>
+                </div>
+
+                <button onClick={() => { alert('Order & delivery quote confirmed! Funds held securely in Stripe Connect escrow.'); setCart([]); setShowCart(false); }} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow text-xs">
+                  Submit Quote & Lock in Escrow
+                </button>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                <div className="flex justify-between"><span>Subtotal:</span><span className="font-bold">${calcSubtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between text-slate-500"><span>Co-Op Escrow Fee (3%):</span><span>+${calcBuyerFee.toFixed(2)}</span></div>
-                <div className="border-t pt-2 flex justify-between font-extrabold text-sm text-slate-900"><span>Total Due:</span><span className="text-emerald-700">${calcTotal.toFixed(2)}</span></div>
-              </div>
-            </div>
-            <button onClick={() => { alert('Order placed! Funds held securely in Stripe Connect escrow.'); setSelectedProduct(null); }} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow text-sm">
-              Confirm Order & Hold in Escrow
-            </button>
+            )}
           </div>
         </div>
       )}
