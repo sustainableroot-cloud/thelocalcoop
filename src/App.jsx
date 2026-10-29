@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calculator, Truck, ShieldCheck, MapPin, Calendar, ArrowRight, CheckCircle2, 
   BarChart3, RefreshCw, ShoppingCart, UserCheck, Layers, Award, Leaf, Wheat,
@@ -11,7 +11,11 @@ export default function TheLocalCoOpApp() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [userRole, setUserRole] = useState('consumer_owner');
   
-  // FeedFlow Calculator State & Results
+  // Rural Co-Op Greeter State
+  const [showGreeter, setShowGreeter] = useState(true);
+  const [greeterMessage, setGreeterMessage] = useState("Welcome to The Local Co-Op! Are you looking for anything in particular today, or just browsing?");
+
+  // Feed Calculator State & Results
   const [animalType, setAnimalType] = useState('horse');
   const [animalCount, setAnimalCount] = useState(4);
   const [feedingMonths, setFeedingMonths] = useState(5);
@@ -27,7 +31,7 @@ export default function TheLocalCoOpApp() {
   const [deliveryPreference, setDeliveryPreference] = useState('pickup');
   const [subscriptionInterval, setSubscriptionInterval] = useState('none');
 
-  // Producer Onboarding Wizard State (One question at a time)
+  // Producer Onboarding Wizard State
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [wizardData, setWizardData] = useState({
     title: '',
@@ -39,71 +43,84 @@ export default function TheLocalCoOpApp() {
     mediaUrl: ''
   });
 
-  // Products & Live Database State (Including Generic Co-Op Branded Items & Producer Profiles)
+  // Products & Live Database State (Southwest Idaho Market Rates & Packaging)
   const [products, setProducts] = useState([
     {
-      id: 'gen-forage',
-      title: 'Local Co-Op Standard Multi-Species Forage Mix',
+      id: 'gen-alfalfa',
+      title: 'Southwest Idaho Dairy-Grade Alfalfa',
       producer: 'Co-Op Network Pool (Homedale / Wilder)',
       category: 'livestock_poultry',
-      baleStyle: 'Standard Square',
-      weightLbs: 60,
-      priceBale: 14.50,
-      priceTon: 241.66,
-      stockBales: 125,
-      rfv: 114,
-      cpPct: 12.41,
+      unitType: 'Per Ton / Large Square',
+      priceBale: 220.00, // per ton
+      pricePerSmallBale: 14.50,
+      stockBales: 150,
+      rfv: 155,
+      cpPct: 20.5,
       zip: '83676',
-      qrHash: 'SR-GEN-FORAGE-01',
+      imageUrl: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=600&q=80',
       isGeneric: true,
       producerRating: 4.9,
-      notes: 'Lab-verified regenerative mix. Co-Op assigns to closest available local producer.'
+      notes: 'Priced at current SW Idaho market rate. Available in 3x4 large square tons or standard small bales.'
     },
     {
-      id: 'prod-homedale-01',
-      title: 'Homedale Regenerative Forage Stack (Vetch, Alfalfa, Clover, Grasses)',
-      producer: 'Walkin\' H Farms',
+      id: 'gen-grass-hay',
+      title: 'Local Grass Hay Mix',
+      producer: 'Treasure Valley Forage Pool',
       category: 'livestock_poultry',
-      baleStyle: 'Standard Square',
-      weightLbs: 60,
-      priceBale: 14.50,
-      priceTon: 241.66,
-      stockBales: 125,
-      rfv: 114,
-      cpPct: 12.41,
+      unitType: 'Per Ton / Small Bale',
+      priceBale: 195.00,
+      pricePerSmallBale: 13.00,
+      stockBales: 200,
+      rfv: 112,
+      cpPct: 10.2,
+      zip: '83641',
+      imageUrl: 'https://images.unsplash.com/photo-1527489377706-5bf97e608852?auto=format&fit=crop&w=600&q=80',
+      isGeneric: true,
+      producerRating: 4.8,
+      notes: 'Clean grass hay ideal for horses and easy keepers.'
+    },
+    {
+      id: 'gen-straw',
+      title: 'Certified Wheat / Barley Straw',
+      producer: 'Co-Op Regional Pool',
+      category: 'livestock_poultry',
+      unitType: 'Per Ton / Bale',
+      priceBale: 110.00, // per ton market rate
+      pricePerSmallBale: 7.50,
+      stockBales: 300,
+      zip: '83628',
+      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d692a465b?auto=format&fit=crop&w=600&q=80',
+      isGeneric: true,
+      producerRating: 4.9,
+      notes: 'Bedding and soil coverage straw at current Southwest Idaho market value.'
+    },
+    {
+      id: 'gen-cover-crop',
+      title: 'Diverse Cover Crop & Pasture Seed Mix',
+      producer: 'Treasure Valley Agronomics',
+      category: 'seed',
+      unitType: '50 lb Bag / Bulk Tote',
+      priceBale: 85.00, // per 50 lb bag
+      stockBales: 80,
       zip: '83676',
-      qrHash: 'SR-HOMEDALE-VETCH-001',
-      isGeneric: false,
+      imageUrl: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=600&q=80',
+      isGeneric: true,
       producerRating: 5.0,
-      notes: '113 main stack + 12 spray painted bales. High Desert Dairy Lab tested.'
+      notes: 'Multi-species regenerative seed blend packaged in 50 lb bags or 1,000 lb totes.'
     },
     {
       id: 'gen-groceries',
-      title: 'Local Co-Op Pasture-Raised Whole Lamb / Beef Share',
+      title: 'Pasture-Raised Whole Lamb / Beef Share',
       producer: 'Treasure Valley Co-Op Pool',
       category: 'groceries',
-      weightLbs: 45,
+      unitType: 'Standard Share Box',
       priceBale: 350.00,
-      stockBales: 20,
+      stockBales: 25,
       zip: '83641',
-      qrHash: 'SR-GEN-GROCERY-01',
-      isGeneric: true,
-      producerRating: 4.8,
-      notes: 'Sourced from local regenerative member ranches across Canyon & Ada county.'
-    },
-    {
-      id: 'gen-seed',
-      title: 'Diverse Cover Crop & Pasture Seed Blend (25 lb bag)',
-      producer: 'Treasure Valley Agronomics',
-      category: 'seed',
-      weightLbs: 25,
-      priceBale: 85.00,
-      stockBales: 50,
-      zip: '83628',
-      qrHash: 'SR-GEN-SEED-01',
+      imageUrl: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=600&q=80',
       isGeneric: true,
       producerRating: 4.9,
-      notes: 'Multi-species mix optimized for no-till drills and soil biology restoration.'
+      notes: 'Sourced from local regenerative member ranches across Canyon & Ada county.'
     }
   ]);
 
@@ -146,13 +163,11 @@ export default function TheLocalCoOpApp() {
       title: wizardData.title,
       producer: 'Your Farm (Treasure Valley)',
       category: wizardData.category,
-      weightLbs: 50,
+      unitType: 'Standard Unit',
       priceBale: parseFloat(wizardData.price) || 20.00,
-      priceTon: 200,
       stockBales: parseInt(wizardData.stock) || 50,
-      rfv: 115,
-      cpPct: 14.0,
       zip: wizardData.zip,
+      imageUrl: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=600&q=80',
       qrHash: `SR-CUSTOM-${Math.floor(1000 + Math.random() * 9000)}`,
       isGeneric: false,
       producerRating: 5.0,
@@ -193,7 +208,38 @@ export default function TheLocalCoOpApp() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <header className="bg-emerald-950 text-white border-b border-emerald-800 sticky top-0 z-50 shadow-md">
+      
+      {/* Rural Co-Op Personal Greeter Modal */}
+      {showGreeter && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border-2 border-emerald-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-600 p-2.5 rounded-xl text-white font-bold">
+                <Leaf className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">The Local Co-Op General Store</h3>
+                <p className="text-xs text-emerald-700 font-medium">Marsing & Homedale Regional Hub</p>
+              </div>
+            </div>
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-xs text-slate-700 leading-relaxed">
+              "{greeterMessage}"
+            </div>
+            <div className="space-y-2 pt-2">
+              <button onClick={() => { setShowGreeter(false); setActiveTab('calculator'); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50 transition text-xs font-bold text-slate-800 flex justify-between items-center">
+                <span>Yes, I'm looking to calculate feed & forage needs</span>
+                <ArrowRight className="w-4 h-4 text-emerald-600" />
+              </button>
+              <button onClick={() => { setShowGreeter(false); setActiveTab('marketplace'); }} className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50 transition text-xs font-bold text-slate-800 flex justify-between items-center">
+                <span>No thanks, I just want to browse the marketplace</span>
+                <ArrowRight className="w-4 h-4 text-emerald-600" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="bg-emerald-950 text-white border-b border-emerald-800 sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-emerald-500 p-2 rounded-lg text-emerald-950 font-black shadow-lg">
@@ -238,7 +284,7 @@ export default function TheLocalCoOpApp() {
 
         <div className="max-w-7xl mx-auto px-4 flex gap-2 border-t border-emerald-900 overflow-x-auto text-sm font-medium">
           <button onClick={() => setActiveTab('marketplace')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'marketplace' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Wheat className="w-4 h-4 text-emerald-400" /> Marketplace</button>
-          <button onClick={() => setActiveTab('calculator')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'calculator' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Calculator className="w-4 h-4 text-emerald-400" /> FeedFlow Calculator</button>
+          <button onClick={() => setActiveTab('calculator')} className={`py-2.5 px-4 flex items-center gap-2 border-b-2 transition ${activeTab === 'calculator' ? 'border-emerald-400 text-emerald-300 font-bold' : 'border-transparent text-emerald-200 hover:text-white'}`}><Calculator className="w-4 h-4 text-emerald-400" /> Feed Calculator</button>
           
           {isLoggedIn && (
             <>
@@ -258,7 +304,7 @@ export default function TheLocalCoOpApp() {
                 <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Search groceries, livestock feed, seed..." 
+                  placeholder="Search groceries, hay, straw, seed..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-emerald-600"
@@ -285,30 +331,37 @@ export default function TheLocalCoOpApp() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts.map((prod) => (
                 <div key={prod.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
-                  <div className="p-5 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className={`text-xs font-bold uppercase px-2.5 py-1 rounded-md border ${prod.isGeneric ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                        {prod.isGeneric ? 'Co-Op Branded Pool' : 'Verified Producer'}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> ZIP {prod.zip}</span>
-                    </div>
+                  <div>
+                    {prod.imageUrl && (
+                      <div className="h-48 w-full overflow-hidden relative">
+                        <img src={prod.imageUrl} alt={prod.title} className="w-full h-full object-cover" />
+                        <span className="absolute top-3 left-3 text-[10px] font-bold uppercase px-2.5 py-1 rounded-md bg-white/90 text-emerald-900 border border-emerald-200 shadow">
+                          {prod.unitType}
+                        </span>
+                      </div>
+                    )}
+                    <div className="p-5 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /> ZIP {prod.zip}</span>
+                      </div>
 
-                    <h4 className="font-bold text-slate-900 text-base">{prod.title}</h4>
-                    
-                    <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
-                      <span className="text-slate-600 font-medium">Provider: <strong className="text-slate-900">{prod.producer}</strong></span>
-                      <span className="flex items-center gap-1 font-bold text-amber-600"><Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {prod.producerRating}</span>
-                    </div>
+                      <h4 className="font-bold text-slate-900 text-base">{prod.title}</h4>
+                      
+                      <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span className="text-slate-600 font-medium">Source: <strong className="text-slate-900">{prod.producer}</strong></span>
+                        <span className="flex items-center gap-1 font-bold text-amber-600"><Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {prod.producerRating}</span>
+                      </div>
 
-                    {prod.notes && <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">{prod.notes}</p>}
-                    
-                    <div className="flex justify-between items-baseline pt-2">
-                      <div><span className="text-2xl font-extrabold text-slate-900">${prod.priceBale.toFixed(2)}</span><span className="text-xs text-slate-500"> / unit</span></div>
-                      <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">Free Producer Entry (Commission Supported)</span>
+                      {prod.notes && <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">{prod.notes}</p>}
+                      
+                      <div className="flex justify-between items-baseline pt-2">
+                        <div><span className="text-2xl font-extrabold text-slate-900">${prod.priceBale.toFixed(2)}</span><span className="text-xs text-slate-500"> / {prod.unitType.includes('Ton') ? 'ton' : 'unit'}</span></div>
+                        <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">SW Idaho Market Rate</span>
+                      </div>
                     </div>
                   </div>
                   <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-700">Stock: {prod.stockBales} Available</span>
+                    <span className="text-xs font-semibold text-slate-700">Stock: {prod.stockBales} units</span>
                     <div className="flex gap-2">
                       <button onClick={() => handleAddToCart(prod, 1)} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-3 py-2 rounded-lg transition">
                         Add to Cart
@@ -328,7 +381,7 @@ export default function TheLocalCoOpApp() {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-200">Custom Ration & Forage Engine</span>
-              <h2 className="text-2xl font-bold text-slate-900 mt-2">FeedFlow Livestock Nutritional & Tonnage Calculator</h2>
+              <h2 className="text-2xl font-bold text-slate-900 mt-2">Feed Calculator</h2>
               <p className="text-slate-600 text-sm mt-1">Configure feed programs tailored to your animals' exact nutritional targets across multi-species farm setups.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-100">
@@ -352,7 +405,7 @@ export default function TheLocalCoOpApp() {
                 </div>
               </div>
               <button onClick={handleCalculateFeed} className="mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl shadow transition flex items-center gap-2">
-                <Calculator className="w-5 h-5" /> Calculate FeedFlow Requirements
+                <Calculator className="w-5 h-5" /> Calculate Feed Requirements
               </button>
             </div>
 
@@ -361,8 +414,8 @@ export default function TheLocalCoOpApp() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                   <div>
                     <span className="text-xs text-emerald-300 uppercase font-semibold">Calculated Total Requirement</span>
-                    <p className="text-4xl font-extrabold mt-1">{calculatedTons} <span className="text-lg font-normal text-emerald-300">Tons</span> <span className="text-sm font-normal text-emerald-200">({calculatedUnits} standard bales / bags)</span></p>
-                    <p className="text-xs text-emerald-300 mt-2">Tailored for {animalCount} {animalType} over {feedingMonths} months based on regional lab feed analysis.</p>
+                    <p className="text-4xl font-extrabold mt-1">{calculatedTons} <span className="text-lg font-normal text-emerald-300">Tons</span> <span className="text-sm font-normal text-emerald-200">({calculatedUnits} bales / bags / totes)</span></p>
+                    <p className="text-xs text-emerald-300 mt-2">Tailored for {animalCount} {animalType} over {feedingMonths} months based on SW Idaho market standards.</p>
                   </div>
                   <div className="bg-emerald-950/60 p-4 rounded-xl border border-emerald-800 space-y-3">
                     <label className="block text-xs font-semibold text-emerald-300 uppercase">Fulfillment & Subscription Schedule</label>
@@ -415,7 +468,7 @@ export default function TheLocalCoOpApp() {
                     <option value="seed">Seed & Agronomics</option>
                   </select>
                   <label className="block text-sm font-bold text-slate-800 pt-2">What is the title of your listing?</label>
-                  <input type="text" placeholder="e.g. Regenerative Mixed Forage Bales or Grass-Fed Beef Share" value={wizardData.title} onChange={(e) => setWizardData({...wizardData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                  <input type="text" placeholder="e.g. Alfalfa Ton / 50 lb Feed Bag" value={wizardData.title} onChange={(e) => setWizardData({...wizardData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
                 </div>
               )}
 
@@ -424,12 +477,12 @@ export default function TheLocalCoOpApp() {
                   <label className="block text-sm font-bold text-slate-800">2. Pricing & Available Quantity</label>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Price Per Unit / Bale ($)</label>
-                      <input type="number" step="0.01" placeholder="14.50" value={wizardData.price} onChange={(e) => setWizardData({...wizardData, price: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                      <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Price Per Unit / Ton ($)</label>
+                      <input type="number" step="0.01" placeholder="220.00" value={wizardData.price} onChange={(e) => setWizardData({...wizardData, price: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Available Units</label>
-                      <input type="number" placeholder="125" value={wizardData.stock} onChange={(e) => setWizardData({...wizardData, stock: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
+                      <input type="number" placeholder="100" value={wizardData.stock} onChange={(e) => setWizardData({...wizardData, stock: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
                     </div>
                   </div>
                   <div>
@@ -441,8 +494,8 @@ export default function TheLocalCoOpApp() {
 
               {onboardingStep === 3 && (
                 <div className="space-y-3">
-                  <label className="block text-sm font-bold text-slate-800">3. Description, Lab Metrics & Media</label>
-                  <textarea placeholder="Describe your product, growing practices, or paste lab test highlights..." value={wizardData.description} onChange={(e) => setWizardData({...wizardData, description: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm h-24" />
+                  <label className="block text-sm font-bold text-slate-800">3. Description & Media Links</label>
+                  <textarea placeholder="Describe your product, packaging (tons, 50 lb bags, totes), growing practices..." value={wizardData.description} onChange={(e) => setWizardData({...wizardData, description: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm h-24" />
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Photo / Video Link (Google Photos / YouTube)</label>
                     <input type="text" placeholder="https://photos.app.goo.gl/..." value={wizardData.mediaUrl} onChange={(e) => setWizardData({...wizardData, mediaUrl: e.target.value})} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm" />
@@ -573,7 +626,7 @@ export default function TheLocalCoOpApp() {
             </div>
 
             {cart.length === 0 ? (
-              <p className="text-xs text-slate-500 py-8 text-center">Your cart is currently empty. Browse the marketplace or use FeedFlow to add items.</p>
+              <p className="text-xs text-slate-500 py-8 text-center">Your cart is currently empty. Browse the marketplace or use the feed calculator to add items.</p>
             ) : (
               <div className="space-y-4">
                 <div className="divide-y divide-slate-100">
